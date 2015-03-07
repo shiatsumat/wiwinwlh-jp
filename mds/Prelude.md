@@ -1,28 +1,31 @@
-Prelude
-=======
+# <a name="Prelude">Prelude</a>
 
-What to Avoid?
---------------
+## 目次
 
-Haskell being a 25 year old language has witnessed several revolutions in the way we structure and compose
-functional programs. Yet as a result several portions of the Prelude still reflect old schools of thought that
-simply can't be removed without breaking significant parts of the ecosystem.
+* [使わない方がいいのはどれ？](#what-to-avoid)
+* [部分関数](#partial-functions)
+* [safe](#safe)
+* [ブール値の不透明性](#boolean-blindness)
+* [Foldable と Traversable](#foldable-traversable)
+* [余再帰](#corecursion)
+* [split](#split)
+* [monad-loops](#monad-loops)
 
-Currently it really only exists in folklore which parts to use and which not to use, although this is a topic
-that almost all introductory books don't mention and instead make extensive use of the Prelude for simplicity's
-sake.
+## <a name="what-to-avoid">使わない方がいいのはどれ？</a>
 
-The short version of the advice on the Prelude is:
+Haskell は 25 歳の言語なので、関数的プログラムを組み立てて合成する方法も何度か革命的な変化を受けました。しかし、その結果 Prelude のいろいろな部分が古い流儀の考え方を未だに反映していますが、Haskell の生態系で重要な部分を壊さずにそれらを取り除くことはできないのです。
 
-* Use ``fmap`` instead of ``map``.
-* Use Foldable and Traversable instead of the Control.Monad, and Data.List versions of traversals.
-* Avoid partial functions like ``head`` and ``read`` or use their total variants.
-* Avoid asynchronous exceptions.
-* Avoid boolean blind functions.
+今のところ、Prelude のどの部分を使うべきでどの部分を使うべきでないのかという情報は、本当に民間伝承にしか存在しません。ほとんどの入門書はこの話題に触れず、単純さのために Prelude を広範囲で利用します。
 
-The instances of Foldable for the list type often conflict with the monomorphic versions in the Prelude which
-are left in for historical reasons. So often times it is desirable to explicitly mask these functions from
-implicit import and force the use of Foldable and Traversable instead:
+Prelude についての短い助言は：
+
+* ``map`` の代わりに ``fmap`` を使いましょう。
+* Control.Monad や Data.List にあるバージョンの走査ではなく、Foldable や Traversable を使いましょう。
+* ``head`` や ``read`` 等の部分関数はなるべく使わず、全域関数の変種を使いましょう。
+* 非同期の例外は使わないようにしましょう。
+* ブール値の不透明な関数を使うのは避けましょう。
+
+リスト型の Foldable のインスタンスはしばしば Prelude に歴史的理由で残されている単相のバージョンと衝突します。ですから多くの場合、これらの関数を暗黙のインポートから明示的に排除し、Foldable や Traversable を使わせることが望ましいです。
 
 ```haskell
 import  Data.List hiding (
@@ -35,46 +38,29 @@ import Control.Monad hiding (
     forM , forM_ , mapM , mapM_ , msum , sequence , sequence_ )
 ```
 
-Of course often times one wishes only to use the Prelude explicitly and one can
-explicitly import it qualified and use the pieces as desired without the
-implicit import of the whole namespace.
+もちろん、Prelude を単に明示的に使用したいだけであることも多く、Prelude を修飾子を付けて (qualified) 名前空間全体を暗黙にインポートすることなく、使いたい時だけ使うこともできます。
 
 ```haskell
 import qualified Prelude as P
 ```
 
-This does however bring in several typeclass instances and classes regardless of
-whether it is explicitly or implicitly imported. If one really desires to use
-nothing from the Prelude then the option exists to exclude the entire prelude (
-except for the wired-in class instances ) with the ``-XNoImplicitPrelude``
-pragma.
+しかしこうしても、インポートが明示的か暗黙的かに関わらず、いくつかの型クラスのインスタンスと型クラスを持ち込んでしまいます。Prelude にあるものを本当に何も使いたくなければ、（組み込みのクラスのインスタンスを除いて）Prelude 全体を除外するという選択肢もあります。それには ``-XNoImplicitPrelude`` プラグマを使います。
 
 ```haskell
 {-# LANGUAGE NoImplicitPrelude #-}
 ```
 
-The Prelude itself is entirely replicable as well presuming that an entire
-project is compiled without the implicit Prelude. Several packages have arisen
-that supply much of the same functionality in a way that appeals to more modern
-design principles.
+プロジェクト全体が暗黙の Prelude 無しにコンパイルされると仮定すると、Prelude 自体を完全に複製することもできます。同じ機能の大部分を、より現代的な設計原理に合うような方法で提供するパッケージが、いくつか現れています。
 
 * [base-prelude](http://hackage.haskell.org/package/base-prelude)
 * [basic-prelude](http://hackage.haskell.org/package/basic-prelude)
 * [classy-prelude](http://hackage.haskell.org/package/classy-prelude)
 
-Partial Functions
------------------
+## <a name="partial-functions">部分関数</a>
 
-A *partial function* is a function which doesn't terminate and yield a value for all given inputs. Conversely a
-*total function* terminates and is always defined for all inputs. As mentioned previously, certain historical
-parts of the Prelude are full of partial functions.
+**部分関数**は、与えられた入力に対し常に停止し値を生むとは限らない関数である。反対に、**全域関数**は全ての入力に対し停止し常に定義されている。以前述べたように、Prelude の歴史的な特定の部分は完全に部分関数です。
 
-The difference between partial and total functions is the compiler can't reason about the runtime safety of
-partial functions purely from the information specified in the language and as such the proof of safety is
-left to the user to to guarantee. They are safe to use in the case where the user can guarantee that invalid
-inputs cannot occur, but like any unchecked property its safety or not-safety is going to depend on the
-diligence of the programmer. This very much goes against the overall philosophy of Haskell and as such they
-are discouraged when not necessary.
+部分関数と全域関数の違いは、コンパイラが部分関数の実行時の安全性を言語の上で明示された情報だけから推論することができず、安全性の証明自体はユーザーに保証する責任があるということです。ユーザーが無効な入力は生まれないということを保証できる場合には、部分関数は安全に使用できます。しかし、未検査の性質一般に言えることですが、安全か危険かはプログラマの熱心さに依存するものです。これは Haskell の全体的な哲学の真逆を行くものであり、必要でなければ部分関数は使わない方がよいのです。
 
 ```haskell
 head :: [a] -> a
@@ -82,18 +68,15 @@ read :: Read a => String -> a
 (!!) :: [a] -> Int -> a
 ```
 
-Safe
-----
+## <a name="safe">safe</a>
 
-The Prelude has total variants of the historical partial functions (i.e. ``Text.Read.readMaybe``)in some
-cases, but often these are found in the various utility libraries like ``safe``.
+Prelude に歴史的な部分関数の全域な変種（``Text.Read.readMaybe`` など）がある場合もありますが、しばしばそうした変種は ``safe`` などのさまざまな多目的ライブラリで見つかります。
 
-The total versions provided fall into three cases:
+ここで提供されている全域のバージョンは 3 つのグループに分類されます。
 
-* ``May``  - return Nothing when the function is not defined for the inputs
-* ``Def``  - provide a default value when the function is not defined for the inputs
-* ``Note`` - call ``error`` with a custom error message when the function is not defined for the inputs. This
-  is not safe, but slightly easier to debug!
+* ``May``：関数が入力で定義されていなければ Nothing を返します。
+* ``Def``：関数が入力で定義されていなければデフォルトの値を返します。
+* ``Note``：関数が入力で定義されていなければ好きなエラーメッセージで ``error`` を呼び出します。安全ではないですが、ちょっとはデバッグしやすいです！
 
 ```haskell
 -- Total
@@ -112,8 +95,7 @@ readNote :: Read a => String -> String -> a
 atNote   :: String -> [a] -> Int -> a
 ```
 
-Boolean Blindness
-------------------
+## <a name="boolean-blindness">ブール値の不透明性</a>
 
 ```haskell
 data Bool = True | False
@@ -123,35 +105,25 @@ isJust (Just x) = True
 isJust Nothing  = False
 ```
 
-The problem with the boolean type is that there is effectively no difference
-between True and False at the type level. A proposition taking a value to a Bool
-takes any information given and destroys it. To reason about the behavior we
-have to trace the provenance of the proposition we're getting the boolean answer
-from, and this introduces whole slew of possibilities for misinterpretation. In
-the worst case, the only way to reason about safe and unsafe use of a function
-is by trusting that a predicate's lexical name reflects its provenance!
+ブール型の問題は、型レベルでは True と False の間に実質的に何の違いも無いということです。値を受け取って Bool を返す命題は、任意の情報を受け取って破壊してしまうのです。振る舞いについて推論するためには、ブール値の答えを与えた命題の情報源を辿らねばならず、誤った解釈をしてしまう可能性をうんと上げてしまうのです。最悪の場合、関数の仕様が安全か危険か判断するための方法は、述語の名前の文字が情報源を表すと信じることしかないのです！
 
-For instance, testing some proposition over a Bool value representing whether
-the branch can perform the computation safely in the presence of a null is
-subject to accidental interchange. Consider that in a language like C or Python
-testing whether a value is null is indistinguishable to the language from
-testing whether the value is *not null*. Which of these programs encodes safe
-usage and which segfaults?
+例えば、各分岐がヌル値の存在下で計算を安全に実行できるかどうかを表す、Bool の値を返す命題をテストすると、得てして予期せぬやりとりが生じます。C や Python のような言語で値がヌルかどうかテストすることは、値が**ヌルで無い**かどうかテストすることと区別が付かない、ということを考えましょう。以下のプログラムのどちらが安全な使用法を表していて、どちらがセグメンテーション違反を起こすでしょうか？
 
 ```python
-# This one?
+# こっち？
 if p(x):
-    # use x
+    # x を使う
 elif not p(x):
-    # dont use x
+    # x を使わない
 
-# Or this one?
+# それともこっち？
 if p(x):
-    # don't use x
+    # x を使わない
 elif not p(x):
-    # use x
+    # x を使う
 ```
 
+詳しく調べようとしても、
 For inspection we can't tell without knowing how p is defined, the compiler
 can't distinguish the two either and thus the language won't save us if we
 happen to mix them up. Instead of making invalid states *unrepresentable* we've
@@ -183,8 +155,7 @@ those not familiar with ML family languages.
 In Haskell, the Prelude provides functions like ``isJust`` and ``fromJust`` both of which can be used to
 subvert this kind of reasoning and make it easy to introduce bugs and should often be avoided.
 
-Foldable / Traversable
-----------------------
+## <a name="foldable-traversable">Foldable と Traversable</a>
 
 If coming from an imperative background retraining one's self to think about iteration over lists in terms of
 maps, folds, and scans can be challenging.
@@ -345,8 +316,7 @@ data Tree a = Node a [Tree a]
 
 See: [Typeclassopedia](http://www.haskell.org/haskellwiki/Typeclassopedia)
 
-Corecursion
------------
+## <a name="corecursion">余再帰</a>
 
 ```haskell
 unfoldr :: (b -> Maybe (a, b)) -> b -> [a]
@@ -370,8 +340,7 @@ fibs :: [Int]
 fibs = unfoldr (\(a,b) -> Just (a,(b,a+b))) (0,1)
 ```
 
-Split
------
+## <a name="split">split</a>
 
 The [split](http://hackage.haskell.org/package/split-0.1.1/docs/Data-List-Split.html) package provides a
 variety of missing functions for splitting list and string types.
@@ -388,8 +357,7 @@ example2 = chunksOf 10 "To be or not to be that is the question."
 -- ["To be or n","ot to be t","hat is the"," question."]
 ```
 
-Monad-loops
------------
+## <a name="monad-loops">monad-loops</a>
 
 The [monad-loops](http://hackage.haskell.org/package/monad-loops-0.4.2/docs/Control-Monad-Loops.html) package
 provides a variety of missing functions for control logic in monadic contexts.

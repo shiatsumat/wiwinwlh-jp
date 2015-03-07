@@ -1,8 +1,23 @@
-GHC
-===
+# <a name="ghc">GHC</a>
 
-Block Diagram
--------------
+## 目次
+
+* [ブロック図](#block-diagram)
+* [コア](#core)
+* [インライナ](#inliner)
+* [辞書](#dictionaries)
+* [特殊化](#specialization)
+* [静的コンパイル](#static-compilation)
+* [非ボックス型](#unboxed-types)
+* [IO と ST](#io-st)
+* [ghc-heap-view](#ghc-heap-view)
+* [STG](#stg)
+* [ワーカとラッパ](#worker-wrapper)
+* [Z エンコーディング](#z-encoding)
+* [Cmm](#cmm)
+* [最適化ハック](#optimization-hacks)
+
+## <a name="block-diagram">ブロック図</a>
 
 The flow of code through GHC is a process of translation between several
 intermediate languages and optimizations and transformations thereof. A common
@@ -79,8 +94,7 @@ Flag                   Action
 ``-ddump-asm``         The final assembly generated.
 ``-ddump-llvm``        The final LLVM IR generated.
 
-Core
-----
+## <a name="core">コア</a>
 
 Core is the explicitly typed System-F family syntax through that all Haskell
 constructs can be expressed in.
@@ -283,8 +297,7 @@ See:
 * [Core By Example](http://alpmestan.com/2013/06/27/ghc-core-by-example-episode-1/)
 * [CoreSynType](https://ghc.haskell.org/trac/ghc/wiki/Commentary/Compiler/CoreSynType)
 
-Inliner
--------
+## <a name="inliner">インライナ</a>
 
 ```haskell
 infixr 0  $
@@ -364,8 +377,7 @@ See:
 
 * [Secrets of the Glasgow Haskell Compiler inliner](https://research.microsoft.com/en-us/um/people/simonpj/Papers/inlining/inline.pdf)
 
-Dictionaries
-------------
+## <a name="dictionaries">辞書</a>
 
 The Haskell language defines the notion of Typeclasses but is agnostic to how
 they are implemented in a Haskell compiler. GHC's particular implementation uses
@@ -445,8 +457,7 @@ Indeed this is not that far from how GHC actually implements typeclasses. It
 elaborates into projection functions and data constructors nearly identical to
 this, and are implicitly threaded for every overloaded identifier.
 
-Specialization
---------------
+## <a name="specialization">特殊化</a>
 
 Overloading in Haskell is normally not entirely free by default, although with
 an optimization called specialization it can be made to have zero cost at
@@ -472,8 +483,20 @@ however, they explicitly specialize each and every function at the call site
 replacing the overloaded function with it's type-specific implementation. We can
 selectively enable this kind of behavior using class specialization.
 
-~~~~ {.haskell include="src/29-ghc/specialize.hs"}
-~~~~
+```haskell
+module Specialize (spec, nonspec, f) where
+
+{-# SPECIALIZE INLINE f :: Double -> Double -> Double #-}
+
+f :: Floating a => a -> a -> a
+f x y = exp (x + y) * exp (x + y)
+
+nonspec :: Float
+nonspec = f (10 :: Float) (20 :: Float)
+
+spec :: Double
+spec = f (10 :: Double) (20 :: Double)
+```
 
 **Non-specialized**
 
@@ -524,8 +547,7 @@ Using the ``SPECIALISE INLINE`` pragma can unintentionally cause GHC to diverge
 if applied over a recursive function, it will try to specialize itself
 infinitely.
 
-Static Compilation
-------------------
+## <a name="static-compilation">静的コンパイル</a>
 
 On Linux, Haskell programs can be compiled into a standalone statically linked
 binary that includes the runtime statically linked into it.
@@ -546,8 +568,7 @@ unneeded symbols.
 $ strip Example
 ```
 
-Unboxed Types
---------------
+## <a name="unboxed-types">非ボックス型</a>
 
 The usual numerics types in Haskell can be considered to be a regular algebraic
 datatype with special constructor arguments for their underlying unboxed values.
@@ -604,8 +625,30 @@ runtime representation that can be used polymorphically.
 - *Lifted* - Can contain a bottom term, represented by a pointer. ( ``Int``, ``Any``, ``(,)`` )
 - *Unlited* - Cannot contain a bottom term, represented by a value on the stack. ( ``Int#``, ``(#, #)`` )
 
-~~~~ {.haskell include="src/29-ghc/prim.hs"}
-~~~~
+```haskell
+{-# LANGUAGE BangPatterns, MagicHash, UnboxedTuples #-}
+
+import GHC.Exts
+import GHC.Prim
+
+ex1 :: Bool
+ex1 = gtChar# a# b#
+  where
+    !(C# a#) = 'a'
+    !(C# b#) = 'b'
+
+ex2 :: Int
+ex2 = I# (a# +# b#)
+  where
+    !(I# a#) = 1
+    !(I# b#) = 2
+
+ex3 :: Int
+ex3 = (I# (1# +# 2# *# 3# +# 4#))
+
+ex4 :: (Int, Int)
+ex4 = (I# (dataToTag# False), I# (dataToTag# True))
+```
 
 The function for integer arithmetic used in the ``Num`` typeclass for ``Int`` is
 just pattern matching on this type to reveal the underlying unboxed value,
@@ -640,8 +683,41 @@ non-pointers.
 The ``unpackClosure#`` primop can be used to extract this information at runtime
 by reading off the bitmap on the closure.
 
-~~~~ {.haskell include="src/29-ghc/closure_size.hs"}
-~~~~
+```haskell
+{-# LANGUAGE MagicHash, UnboxedTuples #-}
+{-# OPTIONS_GHC -O1 #-}
+
+module Main where
+
+import GHC.Exts
+import GHC.Base
+import Foreign
+
+data Size = Size
+  { ptrs  :: Int
+  , nptrs :: Int
+  , size  :: Int
+  } deriving (Show)
+
+unsafeSizeof :: a -> Size
+unsafeSizeof a =
+  case unpackClosure# a of
+    (# x, ptrs, nptrs #) ->
+      let header  = sizeOf (undefined :: Int)
+          ptr_c   = I# (sizeofArray# ptrs)
+          nptr_c  = I# (sizeofByteArray# nptrs) `div` sizeOf (undefined :: Word)
+          payload = I# (sizeofArray# ptrs +# sizeofByteArray# nptrs)
+          size    = header + payload
+      in Size ptr_c nptr_c size
+
+data A = A {-# UNPACK #-} !Int
+data B = B Int
+
+main :: IO ()
+main = do
+  print (unsafeSizeof (A 42))
+  print (unsafeSizeof (B 42))
+```
 
 For example the datatype with the ``UNPACK`` pragma contains 1 non-pointer and 0
 pointers.
@@ -722,8 +798,7 @@ See:
 
 * [Unboxed Values as First-Class Citizens](http://www.haskell.org/ghc/docs/papers/unboxed-values.ps.gz)
 
-IO/ST
------
+## <a name="io-st">IO と ST</a>
 
 Both the IO and the ST monad have special state in the GHC runtime and share a
 very similar implementation. Both ``ST a`` and ``IO a`` are passing around an
@@ -747,19 +822,64 @@ that generic over both ST and IO.  This is used extensively inside of the vector
 package to allow vector algorithms to be written generically either inside of IO
 or ST.
 
-~~~~ {.haskell include="src/29-ghc/io_impl.hs"}
-~~~~
+```haskell
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE UnboxedTuples #-}
 
-~~~~ {.haskell include="src/29-ghc/monad_prim.hs"}
-~~~~
+import GHC.IO ( IO(..) )
+import GHC.Prim ( State#, RealWorld )
+import GHC.Base ( realWorld# )
+
+instance  Monad IO  where
+    m >> k    = m >>= \ _ -> k
+    return    = returnIO
+    (>>=)     = bindIO
+    fail s    = failIO s
+
+returnIO :: a -> IO a
+returnIO x = IO $ \ s -> (# s, x #)
+
+bindIO :: IO a -> (a -> IO b) -> IO b
+bindIO (IO m) k = IO $ \ s -> case m s of (# new_s, a #) -> unIO (k a) new_s
+
+thenIO :: IO a -> IO b -> IO b
+thenIO (IO m) k = IO $ \ s -> case m s of (# new_s, _ #) -> unIO k new_s
+
+unIO :: IO a -> (State# RealWorld -> (# State# RealWorld, a #))
+unIO (IO a) = a
+```
+
+```haskell
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE TypeFamilies #-}
+
+import GHC.IO ( IO(..) )
+import GHC.ST ( ST(..) )
+import GHC.Prim ( State#, RealWorld )
+import GHC.Base ( realWorld# )
+
+class Monad m => PrimMonad m where
+  type PrimState m
+  primitive :: (State# (PrimState m) -> (# State# (PrimState m), a #)) -> m a
+  internal :: m a -> State# (PrimState m) -> (# State# (PrimState m), a #)
+
+instance PrimMonad IO where
+  type PrimState IO = RealWorld
+  primitive = IO
+  internal (IO p) = p
+
+instance PrimMonad (ST s) where
+  type PrimState (ST s) = s
+  primitive = ST
+  internal (ST p) = p
+```
 
 See:
 
 * [Evaluation order and state tokens](https://www.fpcomplete.com/user/snoyberg/general-haskell/advanced/evaluation-order-and-state-tokens)
 
-
-ghc-heap-view
--------------
+## <a name="ghc-heap-view">ghc-heap-view</a>
 
 Through some dark runtime magic we can actually inspect the ``StgClosure``
 structures at runtime using various C and Cmm hacks to probe at the fields of
@@ -769,8 +889,39 @@ of thing in everyday code it is very helpful when studying the GHC internals to
 be able to inspect the runtime implementation details and get at the raw bits
 underlying all Haskell types.
 
-~~~~ {.haskell include="src/29-ghc/heapview.hs"}
-~~~~
+```haskell
+{-# LANGUAGE MagicHash #-}
+
+import GHC.Exts
+import GHC.HeapView
+
+import System.Mem
+
+main :: IO ()
+main = do
+  -- Constr
+  clo <- getClosureData $! ([1,2,3] :: [Int])
+  print clo
+
+  -- Thunk
+  let thunk = id (1+1)
+  clo <- getClosureData thunk
+  print clo
+
+  -- evaluate to WHNF
+  thunk `seq` return ()
+
+  -- Indirection
+  clo <- getClosureData thunk
+  print clo
+
+  -- force garbage collection
+  performGC
+
+  -- Value
+  clo <- getClosureData thunk
+  print clo
+```
 
 A constructor (in this for cons constructor of list type) is represented by a
 ``CONSTR`` closure that holds two pointers to the head and the tail. The integer
@@ -846,8 +997,7 @@ ConsClosure {
 }
 ```
 
-STG
----
+## <a name="stg">STG</a>
 
 After being compiled into Core, a program is translated into a very similar
 intermediate form known as STG ( Spineless Tagless G-Machine ) an abstract
@@ -952,8 +1102,7 @@ inside of the loop which are updated when computed. It also includes static
 references to both itself (for recursion) and the dictionary for instance of
 ``Num`` typeclass over the type ``Int``.
 
-Worker/Wrapper
---------------
+## <a name="worker-wrapper">ワーカとラッパ</a>
 
 With ``-O2`` turned on GHC will perform a special optimization known as the
 Worker-Wrapper transformation which will split the logic of the factorial
@@ -994,8 +1143,7 @@ See:
 
 * [Writing Haskell as Fast as C](https://donsbot.wordpress.com/2008/05/06/write-haskell-as-fast-as-c-exploiting-strictness-laziness-and-recursion/)
 
-Z-Encoding
-----------
+## <a name="z-encoding">Z エンコーディング</a>
 
 The Z-encoding is Haskell's convention for generating names that are safely
 represented in the compiler target language. Simply put the z-encoding renames
@@ -1033,8 +1181,7 @@ Z-Encoded String                        Decoded String
 ``ghczmprim_GHCziTuple_Z3T_con_info``   ``ghc-prim_GHC.Tuple_(,,)_con_in``
 ``ghczmprim_GHCziTypes_ZC_con_info``    ``ghc-prim_GHC.Types_:_con_info``
 
-Cmm
----
+## <a name="cmm">Cmm</a>
 
 Cmm is GHC's complex internal intermediate representation that maps directly
 onto the generated code for the compiler target. Cmm code code generated from
@@ -1377,11 +1524,51 @@ stg_ap_p_fast
 Handwritten Cmm can be included in a module manually by first compiling it
 through GHC into an object and then using a special FFI invocation.
 
-~~~~ {.cpp include="src/29-ghc/factorial.cmm"}
-~~~~
+```cpp
+#include "Cmm.h"
 
-~~~~ {.haskell include="src/29-ghc/cmm_include.hs"}
-~~~~
+factorial {
+  entry:
+      W_ n  ;
+      W_ acc;
+      n = R1 ;
+      acc = n ;
+      n = n - 1 ;
+    
+  for:
+      if (n <= 0 ) {
+          RET_N(acc);
+      } else {
+          acc = acc * n  ;
+          n = n - 1 ;
+          goto for ;
+      }
+      RET_N(0);
+}
+```
+
+```haskell
+-- ghc -c factorial.cmm -o factorial.o
+-- ghc factorial.o Example.hs -o Example
+
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE UnliftedFFITypes #-}
+{-# LANGUAGE GHCForeignImportPrim #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
+
+module Main where
+
+import GHC.Prim
+import GHC.Word
+
+foreign import prim "factorial" factorial_cmm  :: Word# -> Word#
+
+factorial :: Word64 -> Word64
+factorial (W64# n) =  W64# (factorial_cmm n)
+
+main :: IO ()
+main = print (factorial 5)
+```
 
 See:
 
@@ -1398,8 +1585,7 @@ Cmm Runtime:
 * [Updates.cmm](https://github.com/ghc/ghc/blob/master/rts/Updates.cmm)
 * [Precompiled Closures ( Autogenerated Output )](https://gist.github.com/sdiehl/e5c9daab7a6d1da0ede7)
 
-Optimization Hacks
-------------------
+## <a name="optimization-hacks">最適化ハック</a>
 
 **Tables Next to Code**
 

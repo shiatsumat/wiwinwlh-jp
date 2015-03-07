@@ -1,5 +1,16 @@
-Applicatives
-============
+# <a name="applicatives">Applicative</a>
+
+## 目次
+
+* [はじめに](#introduction)
+* [型クラスの階層](#typeclass-hierarchy)
+* [Alternative](#alternative)
+* [可変個引数関数](#polyvariadic-functions)
+* [圏](#category)
+* [アロー](#arrows)
+* [双関手](#bifunctors)
+
+## <a name="introduction">はじめに</a>
 
 Like monads Applicatives are an abstract structure for a wide class of computations that sit between functors
 and monads in terms of generality.
@@ -108,8 +119,7 @@ apl a b = C <$> a <*> b
 
 See: [Applicative Programming with Effects](http://www.soi.city.ac.uk/~ross/papers/Applicative.pdf)
 
-Typeclass Hierarchy
--------------------
+## <a name="typeclass-hierarchy">型クラスの階層</a>
 
 In principle every monad arises out of an applicative functor (and by corollary a functor) but due to
 historical reasons Applicative isn't a superclass of the Monad typeclass. A hypothetical fixed Prelude might
@@ -136,8 +146,7 @@ join x = x >>= id
 
 See: [Functor-Applicative-Monad Proposal](http://www.haskell.org/haskellwiki/Functor-Applicative-Monad_Proposal)
 
-Alternative
------------
+## <a name="alternative">Alternative</a>
 
 Alternative is an extension of the Applicative class with a zero element and an associative binary operation
 respecting the zero.
@@ -175,8 +184,7 @@ Just 5
 These instances show up very frequently in parsers where the alternative operator can model alternative parse
 branches.
 
-Polyvariadic Functions
-----------------------
+## <a name="polyvariadic-functions">可変個引数関数</a>
 
 One surprising application of typeclasses is the ability to construct functions which take an arbitrary number
 of arguments by defining instances over function types. The arguments may be of arbitrary type, but the
@@ -211,9 +219,7 @@ example2 = collect () "foo" [1,2,3]
 
 See: [Polyvariadic functions](http://okmij.org/ftp/Haskell/polyvariadic.html)
 
-
-Category
---------
+## <a name="category">圏</a>
 
 A category is an algebraic structure that includes a notion of an identity and a
 composition operation that is associative and preserves dentis.
@@ -238,8 +244,7 @@ instance Category (->) where
 f >>> g = g . f
 ```
 
-Arrows
-------
+## <a name="arrows">アロー</a>
 
 Arrows are an extension of categories with the notion of products.
 
@@ -304,8 +309,7 @@ In practice this notation is not used often and in the future may become depreca
 
 See: [Arrow Notation](https://downloads.haskell.org/~ghc/7.8.3/docs/html/users_guide/arrow-notation.html)
 
-Bifunctors
-----------
+## <a name="bifunctors">双関手</a>
 
 Bifunctors are a generalization of functors to include types parameterized by
 two parameters and includes two map functions for each parameter.

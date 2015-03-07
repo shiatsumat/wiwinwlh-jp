@@ -1,8 +1,14 @@
-GADTs
-=====
+# <a name="gadts">GADT</a>
 
-GADTs
------
+## 目次
+
+* [GADT](#gadts2)
+* [種注釈](#kind-signatures)
+* [Void](#void)
+* [幽霊型](#phantom-types)
+* [型等価性](#type-equality)
+
+## <a name="gadts2">GADT</a>
 
 *Generalized Algebraic Data types* (GADTs) are an extension to algebraic
 datatypes that allow us to qualify the constructors to datatypes with type
@@ -53,8 +59,24 @@ Using a GADT we can express the type invariants for our language (i.e. only
 type-safe expressions are representable). Pattern matching on this GADTs then
 carries type equality constraints without the need for explicit tags.
 
-~~~~ {.haskell include="src/12-gadts/gadt.hs"}
-~~~~
+```haskell
+{-# Language GADTs #-}
+
+data Term a where
+  Lit    :: a -> Term a
+  Succ   :: Term Int -> Term Int
+  IsZero :: Term Int -> Term Bool
+  If     :: Term Bool -> Term a -> Term a -> Term a
+
+eval :: Term a -> a
+eval (Lit i)      = i                                   -- Term a
+eval (Succ t)     = 1 + eval t                          -- Term (a ~ Int)
+eval (IsZero i)   = eval i == 0                         -- Term (a ~ Int)
+eval (If b e1 e2) = if eval b then eval e1 else eval e2 -- Term (a ~ Bool)
+
+example :: Int
+example = eval (Succ (Succ (Lit 3)))
+```
 
 This time around:
 
@@ -122,8 +144,7 @@ f (T1 n) = [n]
 f T2     = []
 ```
 
-Kind Signatures
----------------
+## <a name="kind-signatures">種注釈</a>
 
 Haskell's kind system (i.e. the "type of the types") is a system consisting the
 single kind ``*`` and an arrow kind ``->``.
@@ -159,11 +180,25 @@ GADT to specific kinds. For basic usage Haskell's kind inference can deduce this
 reasonably well, but combined with some other type system extensions that extend
 the kind system this becomes essential.
 
-~~~~ {.haskell include="src/12-gadts/kindsignatures.hs"}
-~~~~
+```haskell
+{-# Language GADTs #-}
+{-# LANGUAGE KindSignatures #-}
 
-Void
-----
+data Term a :: * where
+  Lit    :: a -> Term a
+  Succ   :: Term Int -> Term Int
+  IsZero :: Term Int -> Term Bool
+  If     :: Term Bool -> Term a -> Term a -> Term a
+
+data Vec :: * -> * -> * where
+  Nil :: Vec n a
+  Cons :: a -> Vec n a -> Vec n a
+
+data Fix :: (* -> *) -> * where
+  In :: f (Fix f) -> Fix f
+```
+
+## <a name="void">Void</a>
 
 The Void type is the type with no inhabitants. It unifies only with itself.
 
@@ -185,15 +220,46 @@ data Void
 The only inhabitant of both of these types is a diverging term like
 (``undefined``).
 
-Phantom Types
--------------
+## <a name="phantom-types">幽霊型</a>
 
 Phantom types are parameters that appear on the left hand side of a type declaration but which are not
 constrained by the values of the types inhabitants. They are effectively slots for us to encode additional
 information at the type-level.
 
-~~~~ {.haskell include="src/12-gadts/phantom.hs"}
-~~~~
+```haskell
+import Data.Void
+
+data Foo tag a = Foo a
+
+combine :: Num a => Foo tag a -> Foo tag a -> Foo tag a
+combine (Foo a) (Foo b) = Foo (a+b)
+
+-- All identical at the value level, but differ at the type level.
+a :: Foo () Int
+a = Foo 1
+
+b :: Foo t Int
+b = Foo 1
+
+c :: Foo Void Int
+c = Foo 1
+
+-- () ~ ()
+example1 :: Foo () Int
+example1 = combine a a
+
+-- t ~ ()
+example2 :: Foo () Int
+example2 = combine a b
+
+-- t0 ~ t1
+example3 :: Foo t Int
+example3 = combine b b
+
+-- Couldn't match type `t' with `Void'
+example4 :: Foo t Int
+example4 = combine b c
+```
 
 Notice t type variable ``tag`` does not appear in the right hand side of the declaration. Using this allows us
 to express invariants at the type-level that need not manifest at the value-level. We're effectively
@@ -201,9 +267,7 @@ programming by adding extra information at the type-level.
 
 See: [Fun with Phantom Types](http://www.researchgate.net/publication/228707929_Fun_with_phantom_types/file/9c960525654760c169.pdf)
 
-
-Type Equality
--------------
+## <a name="type-equality">型等価性</a>
 
 With a richer language for datatypes we can express terms that witness the
 relationship between terms in the constructors, for example we can now express a
@@ -213,8 +277,41 @@ The type ``Eql a b`` is a proof that types ``a`` and ``b`` are equal, by pattern
 matching on the single ``Refl`` constructor we introduce the equality constraint
 into the body of the pattern match.
 
-~~~~ {.haskell include="src/12-gadts/equal.hs"}
-~~~~
+```haskell
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE ExplicitForAll #-}
+
+-- a ≡ b
+data Eql a b where
+  Refl :: Eql a a
+
+-- Congruence
+-- (f : A → B) {x y} → x ≡ y → f x ≡ f y
+cong :: Eql a b -> Eql (f a) (f b)
+cong Refl = Refl
+
+-- Symmetry
+-- {a b : A} → a ≡ b → a ≡ b
+sym :: Eql a b -> Eql b a
+sym Refl = Refl
+
+-- Transitivity
+-- {a b c : A} → a ≡ b → b ≡ c → a ≡ c
+trans :: Eql a b -> Eql b c -> Eql a c
+trans Refl Refl = Refl
+
+-- Coerce one type to another given a proof of their equality.
+-- {a b : A} → a ≡ b → a → b
+castWith :: Eql a b -> a -> b
+castWith Refl = id
+
+-- Trivial cases
+a :: forall n. Eql n n
+a = Refl
+
+b :: forall. Eql () ()
+b = Refl
+```
 
 As of GHC 7.8 these constructors and functions are included in the Prelude in the
 [Data.Type.Equality](http://hackage.haskell.org/package/base-4.7.0.0/docs/Data-Type-Equality.html) module.

@@ -1,5 +1,15 @@
-Text / ByteString
-=================
+## <a name="text-bytestring">Text と ByteString</a>
+
+## 目次
+
+* [はじめに](#introduction)
+* [Text](#text)
+* [Text.Builder](#text-builder)
+* [ByteString](#bytestring)
+* [printf](#printf)
+* [多重定義されたリスト](#overloaded-lists)
+
+## <a name="introduction">はじめに</a>
 
 The default Haskell string type is the rather naive linked list of characters, that while perfectly fine for
 small identifiers is not well-suited for bulk processing.
@@ -30,8 +40,7 @@ For instance:
 "foo" :: IsString a => a
 ```
 
-Text
-----
+## <a name="text">Name</a>
 
 A Text type is a packed blob of Unicode characters.
 
@@ -58,8 +67,7 @@ myTStr2 = "bar"
 See: [Text](http://hackage.haskell.org/package/text-1.1.0.1/docs/Data-Text.html)
 
 
-Text.Builder
-------------
+## <a name="text-builder">Text.Builder</a>
 
 ```haskell
 toLazyText :: Builder -> Data.Text.Lazy.Internal.Text
@@ -89,8 +97,7 @@ main :: IO ()
 main = L.putStrLn $ toLazyText wall
 ```
 
-ByteString
-----------
+## <a name="bytestring">ByteString</a>
 
 ByteStrings are arrays of unboxed characters with either strict or lazy evaluation.
 
@@ -119,8 +126,7 @@ See:
 * [Bytestring: Bits and Pieces](https://www.fpcomplete.com/school/to-infinity-and-beyond/pick-of-the-week/bytestring-bits-and-pieces)
 * [ByteString](http://hackage.haskell.org/package/bytestring-0.10.4.0/docs/Data-ByteString.html)
 
-Printf
-------
+## <a name="printf">printf</a>
 
 Haskell also has a variadic ``printf`` function in the style of C.
 
@@ -142,8 +148,7 @@ example = printf "(%i, %f, %s)" a b c
 -- "(3, 3.14159, haskell)"
 ```
 
-Overloaded Lists
-----------------
+## <a name="overloaded-lists">多重定義されたリスト</a>
 
 It is ubiquitous for data structure libraries to expose ``toList`` and ``fromList`` functions to construct
 various structures out of lists. As of GHC 7.8 we now have the ability to overload the list syntax in the
