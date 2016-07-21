@@ -1,0 +1,8 @@
+
+# for GitBook
+/_book/
+
+# for NPM
+node_modules/
+npm-*.log
+

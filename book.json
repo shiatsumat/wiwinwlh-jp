@@ -1,0 +1,11 @@
+{
+  "gitbook": ">= 2.5.0",
+  "language": "ja",
+  "plugins": ["forkmegithub"],
+  "pluginsConfig": {
+    "forkmegithub": {
+      "url": "https://github.com/Kinokkory/wiwinwlh-jp"
+    }
+  }
+}
+
