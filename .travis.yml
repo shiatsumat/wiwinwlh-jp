@@ -1,0 +1,10 @@
+language: node_js
+sudo: false
+node_js:
+- "6"
+install:
+- 'npm install -g mizunashi-mana/markdownlint-cli#lint-v0.2.0'
+script:
+- markdownlint --config .markdownlint.json *.md docs
+notifications:
+  email: off
