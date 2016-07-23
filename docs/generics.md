@@ -657,17 +657,3 @@ m = descendBi f $ Decl [ (Let "s" s) , Let "k" k , Let "sk" sk ]
       . rename "y" "b"
       . rename "z" "c"
 ```
-
-## はじめに
-
-## Typeable
-
-## Dynamic
-
-## Data
-
-## Generic
-
-## ジェネリックな導出
-
-## uniplate

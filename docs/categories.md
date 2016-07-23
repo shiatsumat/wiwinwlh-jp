@@ -1,5 +1,7 @@
 # 圏
 
+<!-- markdownlint-disable MD033 -->
+
 ## はじめに
 
 Alas we come to the topic of category theory. Some might say all discussion of
@@ -292,7 +294,6 @@ c = f . g
 f . g x = c x . g
 ```
 
-
 A lot of the expressive power of Haskell types comes from the interesting fact
 that, with a few caveats, polymorphic Haskell functions are natural
 transformations.
@@ -302,8 +303,7 @@ See: [You Could Have Defined Natural Transformations](http://blog.sigfpe.com/200
 ## 米田の補題
 
 The Yoneda lemma is an elementary, but deep result in Category theory. The
-Yoneda lemma states that for any functor ``F``, the types ``F a`` and ``∀ b. (a
--> b) -> F b`` are isomorphic.
+Yoneda lemma states that for any functor ``F``, the types ``F a`` and ``∀ b. (a -> b) -> F b`` are isomorphic.
 
 ```haskell
 {-# LANGUAGE RankNTypes #-}

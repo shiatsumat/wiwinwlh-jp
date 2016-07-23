@@ -3,8 +3,8 @@ sudo: false
 node_js:
 - "6"
 install:
-- npm install -g igorshubovych/markdownlint-cli
+- 'npm install -g mizunashi-mana/markdownlint-cli#lint-v0.2.0'
 script:
-- markdownlint .
+- markdownlint --config .markdownlint.json *.md docs
 notifications:
   email: off

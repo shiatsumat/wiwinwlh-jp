@@ -1,5 +1,7 @@
 # Lens
 
+<!-- markdownlint-disable MD033 -->
+
 ## はじめに
 
 There are several implementations of note that are mostly compatible but differ
@@ -230,23 +232,23 @@ Combinator      Description
 Certain patterns show up so frequently that they warrant their own operators, although they can be expressed
 textual terms as well.
 
-Symbolic Textual Equivalent   Description
--------- -------------------  -----------
-``^.``   ``view``             Access value of target
-``.~``   ``set``              Replace target ``x``
-``%~``   ``over``             Apply function to target
-``+~``   ``over t (+n)``      Add to target
-``-~``   ``over t (-n)``      Subtract to target
-``*~``   ``over t (*n)``      Multiply to target
-``//~``  ``over t (//n)``     Divide to target
-``^~``   ``over t (^n)``      Integral power to target
-``^^~``  ``over t (^^n)``     Fractional power to target
-``||~``  ``over t (|| p)``    Logical or to target
-``&&~``  ``over t (&& p)``    Logical and to target
-``<>~``  ``over t (<> n)``    Append to a monoidal target
-``?~``   ``set t (Just x)``   Replace target with ``Just x``
-``^?``   ``firstOf``          Return ``Just`` target or ``Nothing``
-``^..``  ``toListOf``         View list of targets
+| Symbolic | Textual Equivalent | Description |
+| :------: | -----------------: | :---------: |
+| ``^.``   | ``view``           | Access value of target |
+| ``.~``   | ``set``            | Replace target ``x`` |
+| ``%~``   | ``over``           | Apply function to target |
+| ``+~``   | ``over t (+n)``    | Add to target |
+| ``-~``   | ``over t (-n)``    | Subtract to target |
+| ``*~``   | ``over t (*n)``    | Multiply to target |
+| ``//~``  | ``over t (//n)``   | Divide to target |
+| ``^~``   | ``over t (^n)``    | Integral power to target |
+| ``^^~``  | ``over t (^^n)``   | Fractional power to target |
+| ``||~``  | ``over t (|| p)``  | Logical or to target |
+| ``&&~``  | ``over t (&& p)``  | Logical and to target |
+| ``<>~``  | ``over t (<> n)``  | Append to a monoidal target |
+| ``?~``   | ``set t (Just x)`` | Replace target with ``Just x`` |
+| ``^?``   | ``firstOf``        | Return ``Just`` target or ``Nothing`` |
+| ``^..``  | ``toListOf``       | View list of targets |
 
 Constructing the lens field types from an arbitrary datatype involves a bit of boilerplate code generation.
 But compiles into simple calls which translate the fields of a record into functions involving the ``lens``

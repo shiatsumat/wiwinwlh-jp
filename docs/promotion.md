@@ -1244,11 +1244,11 @@ cong f refl = refl
 vec : ∀ {A} (k : ℕ) → Set
 vec {A} k = Vec A k
 
-plus_zero : {n : ℕ} → n + 0 ≡ n 
+plus_zero : {n : ℕ} → n + 0 ≡ n
 plus_zero {zero}  = refl
 plus_zero {suc n} = cong suc plus_zero
 
-plus_suc : {n : ℕ} → n + (suc 0) ≡ suc n 
+plus_suc : {n : ℕ} → n + (suc 0) ≡ suc n
 plus_suc {zero}  = refl
 plus_suc {suc n} = cong suc (plus_suc {n})
 
@@ -1256,33 +1256,3 @@ reverse : ∀ {A n} → Vec A n → Vec A n
 reverse []       = []
 reverse {A} {suc n} (x ∷ xs) = subst vec (plus_suc {n}) (reverse xs ++ (x  ∷ []))
 ```
-
-## 高階種
-
-## 種多相
-
-## データ種
-
-## 配列
-
-## 型レベル数値
-
-## 型等価性
-
-## 代理
-
-## 昇格された構文
-
-## シングルトン型
-
-## 閉じた型族
-
-## 種を指標とする型族
-
-## 昇格されたシンボル
-
-## HList
-
-## 型レベルマップ
-
-## 高度な証明

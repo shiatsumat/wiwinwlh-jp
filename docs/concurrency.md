@@ -1,5 +1,7 @@
 # 並行性
 
+<!-- markdownlint-disable MD033 -->
+
 ## はじめに
 
 The definitive reference on concurrency and parallelism in Haskell is Simon
@@ -60,7 +62,6 @@ Action          Description
 ``Dud``         The expression has already been evaluated, the computed value is returned and the spark is not converted.
 ``GC'd``        The spark is added to the spark pool but the result is not referenced, so it is garbage collected.
 ``Overflowed``  Insufficient space in the spark pool when spawning.
-
 
 The parallel runtime is necessary to use sparks, and the resulting program must
 be compiled with ``-threaded``. Additionally the program itself can be specified

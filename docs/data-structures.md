@@ -437,9 +437,7 @@ need access to these foreign routines.
 
 For example the
 [dgemm](https://software.intel.com/sites/products/documentation/doclib/mkl_sa/11/tutorials/mkl_mmx_c/GUID-36BFBCE9-EB0A-43B0-ADAF-2B65275726EA.htm)
-routine takes two pointers to a sequence of ``double`` values of two matrices of size ``(m × k)`` and ``(k ×
-n)`` and performs efficient matrix multiplication writing the resulting data through a pointer to a ``(m ×
-n)`` matrix.
+routine takes two pointers to a sequence of ``double`` values of two matrices of size ``(m × k)`` and ``(k × n)`` and performs efficient matrix multiplication writing the resulting data through a pointer to a ``(m × n)`` matrix.
 
 ```haskell
 import Foreign.Storable

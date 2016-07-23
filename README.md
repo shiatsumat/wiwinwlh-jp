@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD041 -->
+
 ![What I Wish I Knew When Learning Haskell](https://raw.githubusercontent.com/sdiehl/wiwinwlh/master/img/title.png)
 
 # 私がHaskellの勉強中に知りたかったこと

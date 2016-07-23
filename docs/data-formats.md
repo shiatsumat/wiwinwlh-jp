@@ -192,7 +192,6 @@ example fname = do
 
 We see we get the nested set of stringy vectors:
 
-
 ```haskell
 [ [ "sepal_length"
   , "sepal_width"

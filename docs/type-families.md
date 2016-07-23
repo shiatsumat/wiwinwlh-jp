@@ -29,8 +29,7 @@ instance Convertible Char Int where
   convert = ord
 ```
 
-もちろん、今 ``Convertible Int``に対するインスタンスは一意性が無いので、``a`` だけから ``b`` の型を確実に推論するいいやり方はもう無いのです。これを直すには、``a ->
-b`` という関数従属 (functional dependency) を追加しましょう。これは GHC に ``a`` は ``b`` の取りうるインスタンスを一意に決定するということを伝えています。ですから、``Int`` に関する ``Integer`` と ``Char`` の両インスタンスは衝突することになります。
+もちろん、今``Convertible Int``に対するインスタンスは一意性が無いので、``a``だけから``b``の型を確実に推論するいいやり方はもう無いのです。これを直すには、``a -> b`` という関数従属 (functional dependency) を追加しましょう。これは GHC に ``a`` は ``b`` の取りうるインスタンスを一意に決定するということを伝えています。ですから、``Int`` に関する ``Integer``と``Char``の両インスタンスは衝突することになります。
 
 ```haskell
 {-# LANGUAGE MultiParamTypeClasses #-}
