@@ -10,7 +10,7 @@
 
 ## 執筆協力
 
-この文献には原文からの翻訳ミスや誤字・分かりづらい表現などが存在するかもしれません。その場合、ぜひ修正して[リクエスト](https://github.com/Kinokkory/wiwinwlh-jp/pulls)を送ってください！
+この文献には原文からの翻訳ミスや誤字・分かりづらい表現などが存在するかもしれません。その場合、ぜひ修正して[リクエスト](https://github.com/mizunashi-mana/wiwinwlh-jp/pulls)を送ってください！
 
 この文献は[GitBook](https://www.gitbook.com/)によって管理されています。
 
@@ -38,6 +38,8 @@ gitbook serve
 現在、第3草稿のものが翻訳されています。原文は現在第4草案です。最新の文献が確認したい場合、原文を参照してください。
 
 原文の全てのコードのソースは[ここ](https://github.com/sdiehl/wiwinwlh/tree/master/src)にあります。誤りやより分かりやすい例があれば、[GitHub](https://github.com/sdiehl/wiwinwlh)にプルリクエストを気兼ねなく出してください。
+
+日本語訳は[@Kinokkory](https://github.com/Kinokkory)による[翻訳](https://github.com/Kinokkory/wiwinwlh-jp)をベースにしています。
 
 ## ライセンス
 
